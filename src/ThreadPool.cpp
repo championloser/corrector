@@ -1,8 +1,9 @@
 #include"../include/ThreadPool.h"
 #include"../include/Thread.h"
+#include"../include/Mylog.h"
 #include<unistd.h>
-#include<iostream>
 #include<sys/syscall.h>
+#include<iostream>
 using std::cout;
 using std::endl;
 
@@ -55,6 +56,7 @@ void ThreadPool::threadFun()
 	{
 		CallBack cb=getTask();
 		cout<<"I am wakeup: "<<::syscall(SYS_gettid)<<","<<::pthread_self()<<endl;
+		//Mylog::getInstance()->_root.debug("I am wakeup: %ld,%ld", ::syscall(SYS_gettid), ::pthread_self());
 		if(cb)cb();
 	}
 }

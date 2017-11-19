@@ -1,12 +1,11 @@
 #include"../include/Reactor.h"
 #include"../include/Acceptor.h"
 #include"../include/Connection.h"
+#include"../include/Mylog.h"
 #include<unistd.h>
 #include<string.h>
 #include<utility>
-#include<iostream>
-using std::cout;
-using std::endl;
+using jjx::Mylog;
 
 namespace jjx
 {
@@ -44,16 +43,18 @@ int Reactor::loop()
 			_eventsList.resize(2*ret);//扩容
 		}else if(0==ret)
 		{
-			cout<<"::epoll_wait: timeout(5s)"<<endl;
+			Mylog::getInstance()->_root.debug("::epoll_wait: timeout(5s)");
 		}else if(ret>0)
 		for(int i=0; i<ret; ++i)
 		{
 			if(_eventsList[i].data.fd==_sfd)//如果有新连接请求
 			{
 				shared_ptr<Connection> pCon=_acceptor.accept();
-				cout<<_acceptor.getLocalIp()<<":"<<_acceptor.getLocalPort()<<"--->"
-				    <<pCon->getPeerIp()<<":"<<pCon->getPeerPort()
-				    <<endl;
+				Mylog::getInstance()->_root.debug("%s:%d--->%s:%d",
+								  _acceptor.getLocalIp().c_str(),
+								  _acceptor.getLocalPort(),
+								  pCon->getPeerIp().c_str(),
+								  pCon->getPeerPort());
 				_lisenMap.insert(std::make_pair(pCon->getNewFd(), pCon));//添加新Connection
 				addEpollinFd(pCon->getNewFd());//将新的newfd注册至_epfd;
 				_handleNewCon(pCon);//执行处理新连接的回调函数
@@ -74,10 +75,11 @@ int Reactor::loop()
 					if(ret<0)//如果对端关闭或连接断开，从epoll解注册，并从_listenMap中移除newfd
 					{
 						shared_ptr<Connection> pCon=it->second;
-						cout<<"Disconnect: ";
-						cout<<_acceptor.getLocalIp()<<":"<<_acceptor.getLocalPort()<<"--->"
-						    <<pCon->getPeerIp()<<":"<<pCon->getPeerPort()
-						    <<endl;
+						Mylog::getInstance()->_root.debug("Disconnect: %s:%d--->%s:%d",
+										  _acceptor.getLocalIp().c_str(),
+										  _acceptor.getLocalPort(),
+										  pCon->getPeerIp().c_str(),
+										  pCon->getPeerPort());
 						delEpollinFd(fd);
 						_disConnect(it->second);
 						_lisenMap.erase(it);

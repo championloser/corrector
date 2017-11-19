@@ -1,5 +1,6 @@
 #include"../include/Thread.h"
 #include"../include/ThreadPool.h"
+#include"../include/Mylog.h"
 #include<unistd.h>
 #include<sys/syscall.h>
 #include<iostream>
@@ -30,6 +31,7 @@ void * Thread::threadFunc(void *p)
 {
 	Thread *pth=static_cast<Thread *>(p);
 	cout<<"I am pthread: "<<::syscall(SYS_gettid)<<","<<::pthread_self()<<endl;
+	//Mylog::getInstance()->_root.debug("I am pthread: %ld,%ld", ::syscall(SYS_gettid), ::pthread_self());
 	pth->run();
 	return NULL;
 }
