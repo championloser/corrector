@@ -55,8 +55,9 @@ void ThreadPool::threadFun()
 	while(!_isExit)
 	{
 		CallBack cb=getTask();
-		cout<<"I am wakeup: "<<::syscall(SYS_gettid)<<","<<::pthread_self()<<endl;
-		//Mylog::getInstance()->_root.debug("I am wakeup: %ld,%ld", ::syscall(SYS_gettid), ::pthread_self());
+		cout<<"I am wakeup : "<<::syscall(SYS_gettid)<<","<<::pthread_self()<<endl;
+		//多线程打日志有异常
+		//Mylog::getInstance()->_root.debug("I am wakeup : %ld,%ld", ::syscall(SYS_gettid), ::pthread_self());
 		if(cb)cb();
 	}
 }
