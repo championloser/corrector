@@ -3,8 +3,6 @@ using jjx::Mylog;
 int main()
 {
 	char buf[]="jiaxian";
-	for(int i=0; i<10000; ++i)
-	{
 	Mylog::getInstance()->_root.emerg("This is an emerg message %s", buf);
 	Mylog::getInstance()->_root.fatal("This is an emerg message %s", buf);
 	Mylog::getInstance()->_root.alert("This is an emerg message %s", buf);
@@ -14,6 +12,5 @@ int main()
 	Mylog::getInstance()->_root.notice("This is an emerg message %s", buf);
 	Mylog::getInstance()->_root.info("This is an emerg message %s", buf);
 	Mylog::getInstance()->_root.debug("This is an emerg message %s", buf);
-	}
 	return 0;
 }

@@ -1,3 +1,4 @@
+#include"../include/ReadConfigFile.h"
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<sys/epoll.h>
@@ -10,16 +11,16 @@
 #include<iostream>
 using std::cout;
 using std::endl;
+using jjx::ReadConfigFile;
 
-int main(int argc,char *argv[])
+int main()
 {
-	if(argc!=3){cout<<"error argc"<<endl; return -1;}
 	int sfd=socket(AF_INET,SOCK_STREAM,0);
 	struct sockaddr_in seraddr;
 	memset(&seraddr,0,sizeof(seraddr));
 	seraddr.sin_family=AF_INET;
-	seraddr.sin_port=htons(atoi(argv[2]));
-	seraddr.sin_addr.s_addr=inet_addr(argv[1]);
+	seraddr.sin_port=htons(atoi(ReadConfigFile::getInstance()->find("PORT:").c_str()));
+	seraddr.sin_addr.s_addr=inet_addr(ReadConfigFile::getInstance()->find("IP:").c_str());
 	int ret;
 	ret=connect(sfd,(struct sockaddr*)&seraddr,sizeof(seraddr));
 	if(ret!=0)

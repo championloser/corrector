@@ -3,6 +3,7 @@
 #include"../include/Connection.h"
 #include"../include/ReactorThreadpool.h"
 #include"../include/Mylog.h"
+#include"../include/ReadConfigFile.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -15,6 +16,7 @@ using jjx::Connection;
 using jjx::Task;
 using jjx::ReactorThreadpool;
 using jjx::Mylog;
+using jjx::ReadConfigFile;
 
 int HandleNewCon(shared_ptr<Connection> pCon)
 {
@@ -28,8 +30,7 @@ int BusinessRecvData(void *p, shared_ptr<Connection> pCon)
 	memset(buf, 0, sizeof(buf));
 	int ret=pCon->recv(buf, sizeof(buf));//接收对端传来的数据
 	if(ret<=0)return -1;
-	cout<<"recv from   : "<<pCon->getPeerIp()<<":"<<pCon->getPeerPort()<<": "<<buf<<endl;
-	Mylog::getInstance()->_root.debug("recv from   : %s:%d: %s",
+	Mylog::getInstance()->_root.debug("recv from : %s:%d: %s",
 					  pCon->getPeerIp().c_str(),
 					  pCon->getPeerPort(),
 					  buf);
@@ -68,9 +69,7 @@ int BusinessSendData(void *p)
 	{
 		shared_ptr<Task> pTask=(*pVectorTaskCopy)[i];
 		pTask->_pCon->send(pTask->_message.c_str(), pTask->_message.size());
-		cout<<"send to     : "<<pTask->_pCon->getPeerIp()<<":"<<pTask->_pCon->getPeerPort()<<": "
-		    <<pTask->_message<<endl;
-		Mylog::getInstance()->_root.debug("send to     : %s:%d: %s",
+		Mylog::getInstance()->_root.debug("send to   : %s:%d: %s",
 						  pTask->_pCon->getPeerIp().c_str(),
 						  pTask->_pCon->getPeerPort(),
 						  pTask->_message.c_str());
@@ -79,21 +78,22 @@ int BusinessSendData(void *p)
 }
 int DisConnect(shared_ptr<Connection> pCon)
 {
-	cout<<"DisConnect  : "<<pCon->getPeerIp()<<":"<<pCon->getPeerPort()<<endl;
-	Mylog::getInstance()->_root.debug("DisConnect  : %s:%d",
+	Mylog::getInstance()->_root.debug("DisConnect: %s:%d",
 					  pCon->getPeerIp().c_str(),
 					  pCon->getPeerPort());
 	return 0;
 }
-int main(int argc, char *argv[])
+int main()
 {
-	if(argc!=3){cout<<"error argc"<<endl; return -1;}
-	Socket soc(argv[1], atoi(argv[2]));
+	Socket soc(ReadConfigFile::getInstance()->find("IP:"), 
+		   atoi(ReadConfigFile::getInstance()->find("PORT:").c_str()));
 	soc.reuseAddr();
 	soc.bind();
 	soc.listen();
 	Acceptor acc(soc);
-	ReactorThreadpool reaThrPool(acc, 5, 10);
+	ReactorThreadpool reaThrPool(acc,
+				     atoi(ReadConfigFile::getInstance()->find("PTH_NUM:").c_str()),
+				     atoi(ReadConfigFile::getInstance()->find("PTH_TASKSIZE:").c_str()));
 	reaThrPool.setHandleNewCon(::HandleNewCon);
 	reaThrPool.setBusinessRecvData(::BusinessRecvData);
 	reaThrPool.setCompute(::Compute);
