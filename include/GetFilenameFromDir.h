@@ -12,7 +12,8 @@ class GetFilenameFromDir
 {
 public:
 	GetFilenameFromDir(const string &path, const string &suffix);
-	vector<string> & getFilenames();
+	vector<string>::iterator begin();
+	vector<string>::iterator end();
 	int printFilename();//for debug
 private:
 	vector<string> _filenames;

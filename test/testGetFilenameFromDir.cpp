@@ -1,4 +1,4 @@
-#include"GetFilenameFromDir.h"
+#include"../include/GetFilenameFromDir.h"
 #include"../include/ReadConfigFile.h"
 using jjx::GetFilenameFromDir;
 using jjx::ReadConfigFile;
