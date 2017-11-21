@@ -1,4 +1,4 @@
-#include"CreateEnDict.h"
+#include"../include/CreateEnDict.h"
 #include"../include/ReadConfigFile.h"
 using jjx::CreateEnDict;
 using jjx::ReadConfigFile;

@@ -1,6 +1,6 @@
+#include"../include/CreateEnDict.h"
 #include"../include/GetFilenameFromDir.h"
 #include"../include/Mylog.h"
-#include"CreateEnDict.h"
 #include<fstream>
 #include<regex>
 #include<iostream>
@@ -22,11 +22,12 @@ int CreateEnDict::loadFile(const string &dir, const string &suffx)
 	regex reg("[A-Za-z]+");
 	string line;
 	string word;
+	ifstream ifs;
 	for(it=pGetFilenames->begin(); it!=pGetFilenames->end(); ++it)
 	{
 		Mylog::getInstance()->_root.debug("loadFile '%s'", it->c_str());
 		filePath=dir+"/"+(*it);
-		ifstream ifs(filePath);
+		ifs.open(filePath);
 		if(!ifs.is_open())
 		{
 			Mylog::getInstance()->_root.error("CreateEnDict: open file error");
@@ -48,6 +49,7 @@ int CreateEnDict::loadFile(const string &dir, const string &suffx)
 				if(!ret.second)++(ret.first->second);
 			}
 		}
+		ifs.close();
 	}
 	return 0;
 }
@@ -65,6 +67,13 @@ int CreateEnDict::dumpFile(const string &path)
 	{
 		ofs<<it->first<<" "<<it->second<<endl;
 	}
+	ofs.close();
+	cleanMap();//将文件dump到磁盘后调用clean将map中的内存归还给内存池
+	return 0;
+}
+int CreateEnDict::cleanMap()
+{
+	_dictionary.clear();
 	return 0;
 }
 int CreateEnDict::printMap()

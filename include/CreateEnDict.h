@@ -15,6 +15,7 @@ public:
 	CreateEnDict();
 	int loadFile(const string &dir, const string &suffx);
 	int dumpFile(const string &path);
+	int cleanMap();
 	int printMap();	//for debug
 private:
 	map<string, int> _dictionary;
