@@ -2,6 +2,7 @@
 #include"../include/Mylog.h"
 #include<fstream>
 #include<iostream>
+#include<algorithm>
 using std::ifstream;
 using std::cout;
 using std::endl;
@@ -51,7 +52,33 @@ int Corrector::createIndex()
 }
 shared_ptr<string> Corrector::findWord(const string &word)
 {
-	shared_ptr<string> pstr(new string(word)); 
+	shared_ptr<string> pstr(new string);
+	set<int> numbersSet1;
+	set<int> numbersSet2;
+	string letter;
+	for(size_t i=0; i<word.size(); ++i)
+	{
+		letter=word[i];
+		map<string, set<int>>::iterator ret=_indexMap.find(letter);
+		if(ret!=_indexMap.end())
+		{
+			if(0==i)numbersSet1=ret->second;//第一次不做交集运算，以后的每一次都和前一次结果做交集
+			else{
+				std::set_intersection(numbersSet1.begin(),
+						      numbersSet1.end(),
+						      ret->second.begin(),
+						      ret->second.end(),
+						      std::inserter(numbersSet2, numbersSet2.begin()));
+				numbersSet1=numbersSet2;
+				numbersSet2.clear();
+			}
+		}
+	}
+	set<int>::iterator it;
+	for(it=numbersSet1.begin(); it!=numbersSet1.end(); ++it)
+	{
+		(*pstr)=(*pstr)+" "+_dictionary[*it].first;
+	}
 	return pstr;
 }
 int Corrector::printVector()

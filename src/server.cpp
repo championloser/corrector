@@ -4,6 +4,8 @@
 #include"../include/ReactorThreadpool.h"
 #include"../include/Mylog.h"
 #include"../include/ReadConfigFile.h"
+#include"../include/CreateEnDict.h"
+#include"../include/Corrector.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -17,6 +19,8 @@ using jjx::Task;
 using jjx::ReactorThreadpool;
 using jjx::Mylog;
 using jjx::ReadConfigFile;
+using jjx::CreateEnDict;
+using jjx::Corrector;
 
 int HandleNewCon(shared_ptr<Connection> pCon)
 {
@@ -42,16 +46,13 @@ int BusinessRecvData(void *p, shared_ptr<Connection> pCon)
 	pReaThrPool->addTaskToThreadPool(std::bind(pReaThrPool->_compute, pTask));
 	return 0;
 }
-int Compute(void *p, shared_ptr<Task> pTask) 
+int Compute(void *pCorrector, void *pReaThr, shared_ptr<Task> pTask) 
 {
-	//计算线程的任务：计算发送过来的数据长度
-	int length=strlen(pTask->_message.c_str());
-	char buf[128];
-	memset(buf, 0, sizeof(buf));
-	sprintf(buf, "(%s%d)", "The size is ", length);
-	pTask->_message=pTask->_message+buf;
-	//将结果打包成任务放到任务队列
-	ReactorThreadpool *pReaThrPool=(ReactorThreadpool*)p;
+	//计算线程的任务：将传过来的数据在词典中查找，并将结果传递给IO线程
+	Corrector *pCorr=(Corrector*)pCorrector;
+	pTask->_message=*(pCorr->findWord(pTask->_message));
+	//将结果放到任务队列
+	ReactorThreadpool *pReaThrPool=(ReactorThreadpool*)pReaThr;
 	pReaThrPool->addTaskToVeactor(pTask);
 	//通过eventfd通知IO线程
 	pReaThrPool->writeEventfd();
@@ -87,16 +88,26 @@ int main()
 {
 	Socket soc(ReadConfigFile::getInstance()->find("IP:"), 
 		   atoi(ReadConfigFile::getInstance()->find("PORT:").c_str()));
-	soc.reuseAddr();
+	soc.reuseAddr();//重用地址
 	soc.bind();
 	soc.listen();
 	Acceptor acc(soc);
 	ReactorThreadpool reaThrPool(acc,
 				     atoi(ReadConfigFile::getInstance()->find("PTH_NUM:").c_str()),
 				     atoi(ReadConfigFile::getInstance()->find("PTH_TASKSIZE:").c_str()));
+
+	CreateEnDict creEnDict;
+	creEnDict.loadFile(ReadConfigFile::getInstance()->find("LIB_EN:"), ".txt");//创建英文词典
+	creEnDict.dumpFile(ReadConfigFile::getInstance()->find("DICT_EN:"));//输出词典到文件
+	Corrector corr;
+	corr.loadDictionary(ReadConfigFile::getInstance()->find("DICT_EN:"));//加载词典
+	corr.createIndex();//建立索引
+
 	reaThrPool.setHandleNewCon(::HandleNewCon);
 	reaThrPool.setBusinessRecvData(::BusinessRecvData);
-	reaThrPool.setCompute(::Compute);
+	reaThrPool.setCompute(std::bind(::Compute, &corr,
+				        std::placeholders::_1,
+					std::placeholders::_2));//将词典地址绑定给计算线程函数
 	reaThrPool.setBusinessSendData(::BusinessSendData);
 	reaThrPool.setDisConnect(::DisConnect);
 	reaThrPool.start();

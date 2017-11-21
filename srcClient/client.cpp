@@ -51,14 +51,21 @@ int main()
 			{
 				memset(buf,0,sizeof(buf));
 				tmpret=read(STDIN_FILENO,buf,sizeof(buf));
-				if(tmpret>0)send(sfd,buf,strlen(buf)-1,0);
+				if(tmpret>0)
+				{
+					send(sfd,buf,strlen(buf)-1,0);
+				}
 				else{printf("Goodbye\n");break;}
 			}
 			if(evs[i].data.fd==sfd)
 			{
 				memset(buf,0,sizeof(buf));
 				tmpret=recv(sfd,buf,sizeof(buf),0);
-				if(tmpret>0)cout<<buf<<endl;
+				if(tmpret>0)
+				{
+					cout<<buf<<endl;
+					cout<<"please input a word: "<<std::flush;//std::flush刷新输出缓冲区
+				}
 				else{printf("Goodbye\n");break;}
 			}
 		}
