@@ -15,6 +15,22 @@ using std::pair;
 
 namespace jjx
 {
+typedef struct
+{
+	string _word;
+	int _minDistance;
+	int _frequency;
+}WordItem;
+class cmp
+{
+public:
+	bool operator()(WordItem &lhs, WordItem &rhs)
+	{
+		if(lhs._minDistance>rhs._minDistance)return true;//最小编辑距离越小，优先级越高
+		else if(lhs._minDistance<rhs._minDistance)return false;
+		else return lhs._frequency<rhs._frequency;//最小编辑距离相同， 词频越高，优先级越高
+	}
+};
 class Corrector
 {
 public:

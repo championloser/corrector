@@ -1,11 +1,16 @@
 #include"../include/Corrector.h"
 #include"../include/Mylog.h"
+#include"../include/minEditDistance.h"
+#include"../include/ReadConfigFile.h"
+#include<stdlib.h>
 #include<fstream>
 #include<iostream>
 #include<algorithm>
+#include<queue>
 using std::ifstream;
 using std::cout;
 using std::endl;
+using std::priority_queue;
 
 namespace jjx
 {
@@ -52,7 +57,6 @@ int Corrector::createIndex()
 }
 shared_ptr<string> Corrector::findWord(const string &word)
 {
-	shared_ptr<string> pstr(new string);
 	set<int> numbersSet1;
 	set<int> numbersSet2;
 	string letter;
@@ -74,10 +78,23 @@ shared_ptr<string> Corrector::findWord(const string &word)
 			}
 		}
 	}
+	priority_queue<WordItem, vector<WordItem>, cmp> priQue;//创建一个优先队列
+	WordItem wItem;
 	set<int>::iterator it;
-	for(it=numbersSet1.begin(); it!=numbersSet1.end(); ++it)
+	for(it=numbersSet1.begin(); it!=numbersSet1.end(); ++it)//将单词计算最小编辑距离后放入优先队列
 	{
-		(*pstr)=(*pstr)+" "+_dictionary[*it].first;
+		wItem._word=_dictionary[*it].first;
+		wItem._frequency=_dictionary[*it].second;
+		wItem._minDistance=minEditDistance(word.c_str(), word.size(),
+						   wItem._word.c_str(), wItem._word.size());
+		priQue.push(wItem);
+	}
+	shared_ptr<string> pstr(new string);
+	int candidateNum=atoi(ReadConfigFile::getInstance()->find("WORD_NUM:").c_str());
+	for(int i=0; i<candidateNum && priQue.size()>0; ++i)//从优先队列中取出特定个数的单词
+	{
+		(*pstr)=(*pstr)+" "+priQue.top()._word;
+		priQue.pop();
 	}
 	return pstr;
 }
