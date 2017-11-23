@@ -13,8 +13,8 @@ MutexLock::~MutexLock()
 }
 void MutexLock::lock()
 {
-	pthread_mutex_lock(&_mutex);
 	_isLock=true;
+	pthread_mutex_lock(&_mutex);
 }
 void MutexLock::unlock()
 {

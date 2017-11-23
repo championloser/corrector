@@ -36,7 +36,7 @@ class Corrector
 public:
 	int loadDictionary(const string &dictPath);
 	int createIndex();
-	shared_ptr<string> findWord(const string &word);
+	shared_ptr<vector<string>> findWord(const string &word, int wordNum);
 	int printVector(); //for debug
 	int printMap();	//for debug
 private:

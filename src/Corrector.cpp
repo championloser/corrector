@@ -1,7 +1,6 @@
 #include"../include/Corrector.h"
 #include"../include/Mylog.h"
 #include"../include/minEditDistance.h"
-#include"../include/ReadConfigFile.h"
 #include<stdlib.h>
 #include<fstream>
 #include<iostream>
@@ -55,7 +54,7 @@ int Corrector::createIndex()
 	}
 	return 0;
 }
-shared_ptr<string> Corrector::findWord(const string &word)
+shared_ptr<vector<string>> Corrector::findWord(const string &word, int wordNum)
 {
 	set<int> numbersSet1;
 	set<int> numbersSet2;
@@ -89,11 +88,10 @@ shared_ptr<string> Corrector::findWord(const string &word)
 						   wItem._word.c_str(), wItem._word.size());
 		priQue.push(wItem);
 	}
-	shared_ptr<string> pstr(new string);
-	int candidateNum=atoi(ReadConfigFile::getInstance()->find("WORD_NUM:").c_str());
-	for(int i=0; i<candidateNum && priQue.size()>0; ++i)//从优先队列中取出特定个数的单词
+	shared_ptr<vector<string>> pstr(new vector<string>);
+	for(int i=0; i<wordNum && priQue.size()>0; ++i)//从优先队列中取出特定个数的单词
 	{
-		(*pstr)=(*pstr)+" "+priQue.top()._word;
+		(*pstr).push_back(priQue.top()._word);
 		priQue.pop();
 	}
 	return pstr;

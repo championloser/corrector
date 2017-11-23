@@ -50,7 +50,13 @@ int Compute(void *pCorrector, void *pReaThr, shared_ptr<Task> pTask)
 {
 	//计算线程的任务：将传过来的数据在词典中查找，并将结果传递给IO线程
 	Corrector *pCorr=(Corrector*)pCorrector;
-	pTask->_message=*(pCorr->findWord(pTask->_message));
+	shared_ptr<vector<string>> pVec=pCorr->findWord(pTask->_message, 10);
+	size_t candidateNum=atoi(ReadConfigFile::getInstance()->find("WORD_NUM:").c_str());
+	pTask->_message.clear();
+	for(size_t i=0; i<candidateNum && i<pVec->size(); ++i)
+	{
+		pTask->_message=pTask->_message+" "+(*pVec)[i];
+	}
 	//将结果放到任务队列
 	ReactorThreadpool *pReaThrPool=(ReactorThreadpool*)pReaThr;
 	pReaThrPool->addTaskToVeactor(pTask);
