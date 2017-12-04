@@ -1,6 +1,7 @@
 #include"../include/ThreadPool.h"
 #include"../include/Thread.h"
 #include"../include/Mylog.h"
+#include"../include/int2str.h"
 #include<unistd.h>
 #include<sys/syscall.h>
 #include<iostream>
@@ -21,12 +22,12 @@ void ThreadPool::start()
 {
 	for(int idx=0; idx!=_pthNum; ++idx)
 	{
-		std::shared_ptr<Thread> pth(new Thread(*this));
+		std::shared_ptr<Thread> pth(new Thread(*this, int2str(idx)));
 		_vecPth.push_back(pth);
 	}
-	for(auto pelem : _vecPth)
+	for(auto pElem : _vecPth)
 	{
-		pelem->start();
+		pElem->start();
 	}
 }
 void ThreadPool::stop()

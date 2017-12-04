@@ -2,10 +2,11 @@
 #include"../include/Acceptor.h"
 #include"../include/Connection.h"
 #include"../include/Mylog.h"
+#include"../include/ReadConfigFile.h"
+#include"../include/int2str.h"
 #include<unistd.h>
 #include<string.h>
 #include<utility>
-using jjx::Mylog;
 
 namespace jjx
 {
@@ -18,8 +19,11 @@ Reactor::Reactor(Acceptor &acceptor, int etfd)
 {
 	_epfd=::epoll_create(1);
 	if(-1==_epfd){perror("::epoll_create");exit(EXIT_FAILURE);}
-	addEpollinFd(_sfd);
+	addEpollinFd(_sfd);//注册sfd
 	addEpollinFd(_etfd);//注册eventfd
+	int time=str2int(ReadConfigFile::getInstance()->find("CACHE_TIME:"));
+	_timerfd.setTime(2, time);//2秒后开始，间隔time时间后触发
+	addEpollinFd(_timerfd.getTfd());//注册timerfd
 }
 Reactor::~Reactor()
 {
@@ -63,6 +67,11 @@ int Reactor::loop()
 			else if(_eventsList[i].data.fd==_etfd)//如果是计算线程发来的信号
 			{
 				_businessSendData();//执行发送数据的业务逻辑函数
+			}
+			else if(_eventsList[i].data.fd==_timerfd.getTfd())//如果是到了缓存写入时间
+			{
+				_timerfd.readTimerfd();//将timerfd读空
+				_writeCacheToFile();//执行将缓存写入文件的函数
 			}else{
 				if(_eventsList[i].events & EPOLLIN)//如果是有业务请求
 				{
@@ -129,6 +138,11 @@ int Reactor::setBusinessSendData(function<int(void)> &cb)
 int Reactor::setHandleNewCon(CallbackType &cb)
 {
 	_handleNewCon=cb;
+	return 0;
+}
+int Reactor::setWriteCacheToFile(function<int(void)> &cb)
+{
+	_writeCacheToFile=cb;
 	return 0;
 }
 int Reactor::setDisConnect(CallbackType &cb)

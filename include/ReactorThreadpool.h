@@ -35,6 +35,7 @@ public:
 	int setBusinessRecvData(CallbackBusinessRecvType &&cb);
 	int setBusinessSendData(CallbackBusinessSendType &&cb);
 	int setCompute(CallbackComputeType &&cb);
+	int setWriteCacheToFile(function<int(void*)> &&cb);
 	int setDisConnect(CallbackType &&cb);
 	int start();
 	int addTaskToThreadPool(ThreadPool::CallBack &&cb);
@@ -52,6 +53,7 @@ private:
 	CallbackType _handleNewCon;
 	CallbackType _businessRecvData;
 	function<int(void)> _businessSendData;
+	function<int(void)> _writeCacheToFile;
 	CallbackType _disConnect;
 };
 

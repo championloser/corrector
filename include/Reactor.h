@@ -1,6 +1,7 @@
 #ifndef __REACTOR_H__
 #define __REACTOR_H__
 
+#include"Timerfd.h"
 #include<sys/epoll.h>
 #include<map>
 #include<memory>
@@ -31,6 +32,7 @@ public:
 	int setHandleNewCon(CallbackType &cb);
 	int setBusinessRecvData(CallbackType &cb);
 	int setBusinessSendData(function<int(void)> &cb);
+	int setWriteCacheToFile(function<int(void)> &cb);
 	int setDisConnect(CallbackType &cb);
 	const string & getLocalIp();
 	int getLocalPort();
@@ -40,11 +42,13 @@ private:
 	Acceptor &_acceptor;
 	int _sfd;
 	int _etfd;//eventfd
+	Timerfd _timerfd;
 	vector<struct epoll_event> _eventsList;
 	map<int, shared_ptr<Connection>> _lisenMap;
 	CallbackType _handleNewCon;
 	CallbackType _businessRecvData;
 	function<int(void)> _businessSendData;
+	function<int(void)> _writeCacheToFile;
 	CallbackType _disConnect;
 };
 }//end of namespace jjx

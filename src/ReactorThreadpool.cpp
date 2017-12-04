@@ -25,6 +25,11 @@ int ReactorThreadpool::setCompute(CallbackComputeType &&cb)
 	_compute=std::bind(cb, this, std::placeholders::_1);
 	return 0;
 }
+int ReactorThreadpool::setWriteCacheToFile(function<int(void*)> &&cb)
+{
+	_writeCacheToFile=std::bind(cb, this);
+	return 0;
+}
 int ReactorThreadpool::setDisConnect(CallbackType &&cb)
 {
 	_disConnect=cb;
@@ -35,6 +40,7 @@ int ReactorThreadpool::start()
 	_rea.setHandleNewCon(_handleNewCon);
 	_rea.setBusinessRecvData(_businessRecvData);
 	_rea.setBusinessSendData(_businessSendData);
+	_rea.setWriteCacheToFile(_writeCacheToFile);
 	_rea.setDisConnect(_disConnect);
 	_thr.start();//开启线程池
 	_rea.loop();//开启Reactor循环

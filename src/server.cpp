@@ -6,6 +6,7 @@
 #include"../include/ReadConfigFile.h"
 #include"../include/CreateEnDict.h"
 #include"../include/Corrector.h"
+#include"../include/CacheManager.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -21,6 +22,8 @@ using jjx::Mylog;
 using jjx::ReadConfigFile;
 using jjx::CreateEnDict;
 using jjx::Corrector;
+using jjx::CacheManager;
+using jjx::Cache;
 
 int HandleNewCon(shared_ptr<Connection> pCon)
 {
@@ -46,11 +49,20 @@ int BusinessRecvData(void *p, shared_ptr<Connection> pCon)
 	pReaThrPool->addTaskToThreadPool(std::bind(pReaThrPool->_compute, pTask));
 	return 0;
 }
-int Compute(void *pCorrector, void *pReaThr, shared_ptr<Task> pTask) 
+int Compute(void *pCorrector, void * pCachManag, void *pReaThr, shared_ptr<Task> pTask) 
 {
-	//计算线程的任务：将传过来的数据在词典中查找，并将结果传递给IO线程
-	Corrector *pCorr=(Corrector*)pCorrector;
-	shared_ptr<vector<string>> pVec=pCorr->findWord(pTask->_message, 10);
+	//计算线程的任务：将传过来的数据先在线程自己的缓存中查找，
+	//缓存找不到就在词典中查找，并将结果传递给IO线程
+	//之后将查询结果记入缓存
+	CacheManager *pCachM=(CacheManager*)pCachManag;
+	Cache &myCache=pCachM->getCacheByIndex(jjx::threadIndex);
+	shared_ptr<vector<string>> pVec=myCache.findWord(pTask->_message);
+	if(pVec->size()==0)//如果cache中没有找到
+	{
+		Corrector *pCorr=(Corrector*)pCorrector;
+		pVec=pCorr->findWord(pTask->_message, 10);//在词典中查找
+		myCache.addWord(pTask->_message, pVec);//添加进缓存
+	}
 	size_t candidateNum=atoi(ReadConfigFile::getInstance()->find("WORD_NUM:").c_str());
 	pTask->_message.clear();
 	for(size_t i=0; i<candidateNum && i<pVec->size(); ++i)
@@ -83,6 +95,14 @@ int BusinessSendData(void *p)
 	}
 	return 0;
 }
+int WriteCacheToFile(void *pCachManag, void *p)
+{
+	CacheManager *pCachM=(CacheManager *)pCachManag;
+	ReactorThreadpool *pReaThrPool=(ReactorThreadpool *)p;
+	//将写缓存的函数打包丢给线程池处理
+	pReaThrPool->addTaskToThreadPool(std::bind(&CacheManager::updateCache, pCachM));
+	return 0;
+}
 int DisConnect(shared_ptr<Connection> pCon)
 {
 	Mylog::getInstance()->_root.debug("DisConnect: %s:%d",
@@ -109,12 +129,19 @@ int main()
 	corr.loadDictionary(ReadConfigFile::getInstance()->find("DICT_EN:"));//加载词典
 	corr.createIndex();//建立索引
 
+	CacheManager cachManag;
+	cachManag.initCache(ReadConfigFile::getInstance()->find("CACHE_FILE:"),
+			    atoi(ReadConfigFile::getInstance()->find("PTH_NUM:").c_str()));//初始化缓存
+
 	reaThrPool.setHandleNewCon(::HandleNewCon);
 	reaThrPool.setBusinessRecvData(::BusinessRecvData);
-	reaThrPool.setCompute(std::bind(::Compute, &corr,
+	reaThrPool.setCompute(std::bind(::Compute,
+					&corr,//将词典地址绑定给计算线程函数
+					&cachManag,//将缓存地址绑定给计算线程函数
 				        std::placeholders::_1,
-					std::placeholders::_2));//将词典地址绑定给计算线程函数
+					std::placeholders::_2));
 	reaThrPool.setBusinessSendData(::BusinessSendData);
+	reaThrPool.setWriteCacheToFile(std::bind(::WriteCacheToFile, &cachManag, std::placeholders::_1));
 	reaThrPool.setDisConnect(::DisConnect);
 	reaThrPool.start();
 	return 0;
