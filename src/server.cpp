@@ -5,8 +5,10 @@
 #include"../include/Mylog.h"
 #include"../include/ReadConfigFile.h"
 #include"../include/CreateEnDict.h"
+#include"../include/CreateCnDict.h"
 #include"../include/Corrector.h"
 #include"../include/CacheManager.h"
+#include"../include/int2str.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -21,9 +23,22 @@ using jjx::ReactorThreadpool;
 using jjx::Mylog;
 using jjx::ReadConfigFile;
 using jjx::CreateEnDict;
+using jjx::CreateCnDict;
 using jjx::Corrector;
 using jjx::CacheManager;
 using jjx::Cache;
+
+//读取配置文件信息
+const string IP = ReadConfigFile::getInstance()->find("IP:");
+const int PORT = jjx::str2int(ReadConfigFile::getInstance()->find("PORT:"));
+const int PTH_NUM = jjx::str2int(ReadConfigFile::getInstance()->find("PTH_NUM:"));
+const int PTH_TASKSIZE = jjx::str2int(ReadConfigFile::getInstance()->find("PTH_TASKSIZE:"));
+const string LIB_EN = ReadConfigFile::getInstance()->find("LIB_EN:");
+const string DICT_EN = ReadConfigFile::getInstance()->find("DICT_EN:");
+const string LIB_CN = ReadConfigFile::getInstance()->find("LIB_CN:");
+const string DICT_CN = ReadConfigFile::getInstance()->find("DICT_CN:");
+const string CACHE_FILE = ReadConfigFile::getInstance()->find("CACHE_FILE:");
+const size_t WORD_NUM = jjx::str2int(ReadConfigFile::getInstance()->find("WORD_NUM:"));
 
 int HandleNewCon(shared_ptr<Connection> pCon)
 {
@@ -61,14 +76,14 @@ int Compute(void *pCorrector, void * pCachManag, void *pReaThr, shared_ptr<Task>
 	{
 		Corrector *pCorr=(Corrector*)pCorrector;
 		pVec=pCorr->findWord(pTask->_message, 10);//在词典中查找
-		myCache.addWord(pTask->_message, pVec);//添加进缓存
+		if(pVec->size()!=0)myCache.addWord(pTask->_message, pVec);//如果词典中找到了就添加进缓存
 	}
-	size_t candidateNum=atoi(ReadConfigFile::getInstance()->find("WORD_NUM:").c_str());
 	pTask->_message.clear();
-	for(size_t i=0; i<candidateNum && i<pVec->size(); ++i)
+	for(size_t i=0; i<WORD_NUM && i<pVec->size(); ++i)
 	{
 		pTask->_message=pTask->_message+" "+(*pVec)[i];
 	}
+	if(pTask->_message.size()==0)pTask->_message=" ";//如果都没有找到，填一个空格
 	//将结果放到任务队列
 	ReactorThreadpool *pReaThrPool=(ReactorThreadpool*)pReaThr;
 	pReaThrPool->addTaskToVeactor(pTask);
@@ -112,26 +127,28 @@ int DisConnect(shared_ptr<Connection> pCon)
 }
 int main()
 {
-	Socket soc(ReadConfigFile::getInstance()->find("IP:"), 
-		   atoi(ReadConfigFile::getInstance()->find("PORT:").c_str()));
+	Socket soc(IP, PORT);
 	soc.reuseAddr();//重用地址
 	soc.bind();
 	soc.listen();
 	Acceptor acc(soc);
-	ReactorThreadpool reaThrPool(acc,
-				     atoi(ReadConfigFile::getInstance()->find("PTH_NUM:").c_str()),
-				     atoi(ReadConfigFile::getInstance()->find("PTH_TASKSIZE:").c_str()));
+	ReactorThreadpool reaThrPool(acc, PTH_NUM, PTH_TASKSIZE);
 
 	CreateEnDict creEnDict;
-	creEnDict.loadFile(ReadConfigFile::getInstance()->find("LIB_EN:"), ".txt");//创建英文词典
-	creEnDict.dumpFile(ReadConfigFile::getInstance()->find("DICT_EN:"));//输出词典到文件
+	creEnDict.loadFile(LIB_EN, ".txt");//创建英文词典
+	creEnDict.dumpFile(DICT_EN);//输出英文词典到文件
+
+	CreateCnDict creCnDict;
+	creCnDict.loadFile(LIB_CN, ".txt");//创建中文词典
+	creCnDict.dumpFile(DICT_CN);//输出中文词典到文件
+
 	Corrector corr;
-	corr.loadDictionary(ReadConfigFile::getInstance()->find("DICT_EN:"));//加载词典
+	corr.loadDictionary(DICT_EN);//加载英文词典
+	corr.loadDictionary(DICT_CN);//加载中文词典
 	corr.createIndex();//建立索引
 
 	CacheManager cachManag;
-	cachManag.initCache(ReadConfigFile::getInstance()->find("CACHE_FILE:"),
-			    atoi(ReadConfigFile::getInstance()->find("PTH_NUM:").c_str()));//初始化缓存
+	cachManag.initCache(CACHE_FILE, PTH_NUM);//初始化缓存
 
 	reaThrPool.setHandleNewCon(::HandleNewCon);
 	reaThrPool.setBusinessRecvData(::BusinessRecvData);

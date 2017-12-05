@@ -1,17 +1,20 @@
 #include<iostream>
 #include<fstream>
+#include<string>
 using std::cout;
 using std::endl;
 using std::ifstream;
+using std::string;
 int main()
 {
-	ifstream ifs("jiangjiaxian");
-	if(ifs.is_open())
+	ifstream ifs("dictionary_cn.txt");
+	string line;
+	int num=1;
+	while(std::getline(ifs, line) && num<=10)
 	{
-		cout<<"true"<<endl;
+		cout<<line<<endl;
+		++num;
 	}
-	else cout<<"false"<<endl;
 	ifs.close();
-	cout<<"close()"<<endl;
 	return 0;
 }

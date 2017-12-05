@@ -22,7 +22,7 @@ Reactor::Reactor(Acceptor &acceptor, int etfd)
 	addEpollinFd(_sfd);//注册sfd
 	addEpollinFd(_etfd);//注册eventfd
 	int time=str2int(ReadConfigFile::getInstance()->find("CACHE_TIME:"));
-	_timerfd.setTime(2, time);//2秒后开始，间隔time时间后触发
+	_timerfd.setTime(60, time);//1分钟后开始，间隔time时间后触发
 	addEpollinFd(_timerfd.getTfd());//注册timerfd
 }
 Reactor::~Reactor()

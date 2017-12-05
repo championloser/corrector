@@ -1,6 +1,7 @@
 #include"../include/Corrector.h"
 #include"../include/Mylog.h"
 #include"../include/minEditDistance.h"
+#include"../include/Mysplit.h"
 #include<stdlib.h>
 #include<fstream>
 #include<iostream>
@@ -36,21 +37,22 @@ int Corrector::loadDictionary(const string &dictPath)
 int Corrector::createIndex()
 {
 	Mylog::getInstance()->_root.debug("Create Index ...");
-	string letter;
+	vector<string> character;
 	for(size_t index=0; index<_dictionary.size(); ++index)
 	{
-		for(size_t i=0; i<_dictionary[index].first.size(); ++i)
+		Mysplit(_dictionary[index].first, character);//把词分成字
+		for(size_t i=0; i<character.size(); ++i)
 		{
-			letter=_dictionary[index].first[i];
 			set<int> numbers;
 			numbers.insert(index);
 			pair<map<string, set<int>>::iterator, bool> ret=
-				_indexMap.insert(std::make_pair(letter, numbers));
+				_indexMap.insert(std::make_pair(character[i], numbers));
 			if(!ret.second)
 			{
 				ret.first->second.insert(index);
 			}
 		}
+		character.clear();//注意每次清空character
 	}
 	return 0;
 }
@@ -58,11 +60,11 @@ shared_ptr<vector<string>> Corrector::findWord(const string &word, int wordNum)
 {
 	set<int> numbersSet1;
 	set<int> numbersSet2;
-	string letter;
-	for(size_t i=0; i<word.size(); ++i)
+	vector<string> character;
+	Mysplit(word, character);
+	for(size_t i=0; i<character.size(); ++i)
 	{
-		letter=word[i];
-		map<string, set<int>>::iterator ret=_indexMap.find(letter);
+		map<string, set<int>>::iterator ret=_indexMap.find(character[i]);
 		if(ret!=_indexMap.end())
 		{
 			if(0==i)numbersSet1=ret->second;//第一次不做交集运算，以后的每一次都和前一次结果做交集
@@ -84,8 +86,7 @@ shared_ptr<vector<string>> Corrector::findWord(const string &word, int wordNum)
 	{
 		wItem._word=_dictionary[*it].first;
 		wItem._frequency=_dictionary[*it].second;
-		wItem._minDistance=minEditDistance(word.c_str(), word.size(),
-						   wItem._word.c_str(), wItem._word.size());
+		wItem._minDistance=minEditDistance(word, wItem._word);
 		priQue.push(wItem);
 	}
 	shared_ptr<vector<string>> pstr(new vector<string>);
